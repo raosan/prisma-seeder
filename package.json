@@ -41,6 +41,7 @@
     "bin": "prisma-seeder",
     "dirname": "prisma-seeder",
     "commands": "./dist/commands",
+    "default": ".",
     "plugins": [
       "@oclif/plugin-help",
       "@oclif/plugin-plugins"
