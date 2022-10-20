@@ -8,3 +8,6 @@
 /yarn.lock
 node_modules
 oclif.manifest.json
+
+schema.example.prisma
+json-schema
