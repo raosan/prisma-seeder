@@ -1,6 +1,7 @@
 import {Command, Flags} from '@oclif/core'
 import {execSync} from 'node:child_process'
 import * as fs from 'node:fs'
+import { updateEnv } from '../scripts/env-edit'
 export default class PrismaSeeder extends Command {
   static description = 'Start seeding by providing path_to_schema_prisma_file and url_of_the_database'
 
@@ -31,8 +32,17 @@ Finish seeding.
     const text = fs.readFileSync('json-schema/json-schema.json', 'utf8')
     const jsonFile = JSON.parse(text)
     const models = Object.keys(jsonFile.definitions)
-    console.log(models.length)
-    console.log(models)
+
+    // update env DB
+    updateEnv('./.env', 'DATABASE_URL', flags['database-url'])
+
+    // migrate DB
+    execSync(`npx prisma migrate deploy --schema=${flags.schema}`, {encoding: 'utf-8'})
+
+    // iterate models, for each key.properties, insert data
+    for (const model of models) {
+      console.log(model)
+    }
 
     this.log('============================')
     this.log('Finish seeding.')
