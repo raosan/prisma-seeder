@@ -11,3 +11,5 @@ oclif.manifest.json
 
 schema.example.prisma
 json-schema
+
+.env

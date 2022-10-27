@@ -34,6 +34,7 @@ Finish seeding.
     const models = Object.keys(jsonFile.definitions)
 
     // update env DB
+    execSync('cp ./.env.example ./.env', {encoding: 'utf-8'})
     updateEnv('./.env', 'DATABASE_URL', flags['database-url'])
 
     // migrate DB
