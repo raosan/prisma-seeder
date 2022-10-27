@@ -8,3 +8,7 @@
 /yarn.lock
 node_modules
 oclif.manifest.json
+
+json-schema
+
+.env
