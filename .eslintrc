@@ -37,13 +37,5 @@
       "unicorn/prefer-string-slice": "warn",
       "no-useless-catch": "warn",
       "unicorn/prefer-object-from-entries": "warn"
-  },
-  "overrides": [
-      {
-          "files": ["docs/**/*.js"],
-          "rules": {
-              "unicorn/filename-case": "off"
-          }
-      }
-  ]
+  }
 }
