@@ -100,7 +100,9 @@ Finish seeding.
 
       const key = model.toLowerCase()
       results.push(
-        prisma[(key as 'user') || (key as 'post')].createMany({
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        prisma[key].createMany({
           data: fakeDatas,
         })
       )
