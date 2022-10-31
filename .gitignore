@@ -10,5 +10,8 @@ node_modules
 oclif.manifest.json
 
 json-schema
+migrations
 
 .env
+
+prisma
