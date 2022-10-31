@@ -83,13 +83,15 @@ Finish seeding.
       const propertiesArr = Object.keys(propertiesObj)
 
       const fakeDatas: any = []
-      for (let index = 0; index < 3; index++) {
+      for (let index = 0; index < 1; index++) {
         const fake: any = Object.assign(
           {},
           ...propertiesArr
             .filter(
               (key) =>
                 key !== 'id' &&
+                key !== 'createdAt' &&
+                key !== 'updatedAt' &&
                 (propertiesObj[key].type === 'integer' ||
                   propertiesObj[key].type === 'string' ||
                   propertiesObj[key].type === 'boolean')
@@ -100,14 +102,18 @@ Finish seeding.
                   ? 1
                   : propertiesObj[key].type === 'boolean'
                   ? true
-                  : 'random string',
+                  : propertiesObj[key].enum
+                  ? propertiesObj[key].enum[0]
+                  : propertiesObj[key].format === 'date-time'
+                  ? '2022-01-20T12:01:30.543Z'
+                  : `random string ${index}`,
             }))
         )
 
         fakeDatas.push(fake)
       }
 
-      const key = model.toLowerCase()
+      const key = model[0].toLowerCase() + model.slice(1)
       results.push(
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
