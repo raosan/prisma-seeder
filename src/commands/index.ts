@@ -41,19 +41,27 @@ Finish seeding.
     this.log('============================')
 
     // update env DB
+    this.log('Updating env...')
+    this.log('============================')
     execSync('cp ./.env.example ./.env', { encoding: 'utf-8' })
     updateEnv('./.env', 'DATABASE_URL', flags['database-url'])
 
     const schemaFlags = `--schema=${flags.schema}`
     // generate json file
+    this.log('Generating prisma schema...')
+    this.log('============================')
     execSync(`npx prisma generate ${schemaFlags}`, {
       encoding: 'utf-8',
     })
     // migrate DB
+    this.log('Resetting DB...')
+    this.log('============================')
     execSync('rm -rf migrations', { encoding: 'utf-8' })
     execSync(`npx prisma migrate reset --force ${schemaFlags}`, {
       encoding: 'utf-8',
     })
+    this.log('Migrating DB...')
+    this.log('============================')
     execSync(`npx prisma migrate dev --name init ${schemaFlags}`, {
       encoding: 'utf-8',
     })
@@ -66,8 +74,8 @@ Finish seeding.
     // iterate models, for each key.properties, insert data
     const results = []
     for (const model of models) {
-      console.log('Model:', model)
-      console.log('========')
+      this.log('Seeding model ' + model + '...')
+      this.log('============================')
       const propertiesObj = jsonFile.definitions[model].properties
       const propertiesArr = Object.keys(propertiesObj)
 
