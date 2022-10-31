@@ -46,32 +46,35 @@ Finish seeding.
     execSync('cp ./.env.example ./.env', { encoding: 'utf-8' })
     updateEnv('./.env', 'DATABASE_URL', flags['database-url'])
 
-    const schemaFlags = `--schema=${flags.schema}`
+    // copy prisma schema file
+    this.log('Copying schema file...')
+    this.log('============================')
+    execSync('rm -rf prisma', { encoding: 'utf-8' })
+    execSync('mkdir prisma', { encoding: 'utf-8' })
+    execSync(`cp ${flags.schema} ./prisma/schema.prisma`, { encoding: 'utf-8' })
+
     // generate json file
     this.log('Generating prisma schema...')
     this.log('============================')
-    execSync(`npx prisma generate ${schemaFlags}`, {
-      encoding: 'utf-8',
-    })
+    execSync(`npx prisma generate`, { encoding: 'utf-8' })
+
     // migrate DB
     this.log('Resetting DB...')
     this.log('============================')
     execSync('rm -rf migrations', { encoding: 'utf-8' })
-    execSync(`npx prisma migrate reset --force ${schemaFlags}`, {
+    execSync(`npx prisma migrate reset --force --skip-generate`, {
       encoding: 'utf-8',
     })
     this.log('Migrating DB...')
     this.log('============================')
-    execSync(`npx prisma migrate dev --name init ${schemaFlags}`, {
-      encoding: 'utf-8',
-    })
+    execSync(`npx prisma migrate dev --name init`, { encoding: 'utf-8' })
 
     // read from json file
-    const text = fs.readFileSync('json-schema/json-schema.json', 'utf8')
+    const text = fs.readFileSync('prisma/json-schema/json-schema.json', 'utf8')
     const jsonFile = JSON.parse(text)
     const models = Object.keys(jsonFile.definitions)
 
-    // iterate models, for each key.properties, insert data
+    // iterate models, for each models.properties, insert data
     const results = []
     for (const model of models) {
       this.log('Seeding model ' + model + '...')
@@ -88,10 +91,16 @@ Finish seeding.
               (key) =>
                 key !== 'id' &&
                 (propertiesObj[key].type === 'integer' ||
-                  propertiesObj[key].type === 'string')
+                  propertiesObj[key].type === 'string' ||
+                  propertiesObj[key].type === 'boolean')
             )
             .map((key) => ({
-              [key]: propertiesObj[key].type === 'integer' ? 1 : 'lalala',
+              [key]:
+                propertiesObj[key].type === 'integer'
+                  ? 1
+                  : propertiesObj[key].type === 'boolean'
+                  ? true
+                  : 'random string',
             }))
         )
 

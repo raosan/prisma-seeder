@@ -13,3 +13,5 @@ json-schema
 migrations
 
 .env
+
+prisma
