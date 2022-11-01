@@ -119,7 +119,7 @@ Finish seeding.
       const item = results[i]
       if (item) {
         // eslint-disable-next-line no-await-in-loop
-        await insertData(i, item.$model, item)
+        await insertData(i, item)
       }
 
       i += 1
@@ -131,15 +131,16 @@ Finish seeding.
   }
 }
 
-async function insertData(index: number, model: string, data: any) {
+async function insertData(index: number, data: any) {
   const { $model, ...cleanData } = data
 
   try {
     console.log('Seeding model ' + $model + '...')
+    const key = $model[0].toLowerCase() + $model.slice(1)
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    await prisma[model].create({ data: cleanData })
+    await prisma[key].create({ data: cleanData })
     results[index] = null
   } catch (error: any) {
     if (error.code === 'P2003') {
