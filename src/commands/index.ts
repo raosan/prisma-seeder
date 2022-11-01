@@ -3,6 +3,7 @@ import { execSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import { updateEnv } from '../scripts/env-edit'
 import { PrismaClient } from '@prisma/client'
+import { v4 as uuidv4 } from 'uuid'
 
 const prisma = new PrismaClient()
 
@@ -76,49 +77,46 @@ Finish seeding.
 
     // iterate models, for each models.properties, insert data
     const results = []
+    const generatedUUID = uuidv4()
     for (const model of models) {
       this.log('Seeding model ' + model + '...')
       this.log('============================')
       const propertiesObj = jsonFile.definitions[model].properties
       const propertiesArr = Object.keys(propertiesObj)
 
-      const fakeDatas: any = []
-      for (let index = 0; index < 1; index++) {
-        const fake: any = Object.assign(
-          {},
-          ...propertiesArr
-            .filter(
-              (key) =>
-                key !== 'id' &&
-                key !== 'createdAt' &&
-                key !== 'updatedAt' &&
-                (propertiesObj[key].type === 'integer' ||
-                  propertiesObj[key].type === 'string' ||
-                  propertiesObj[key].type === 'boolean')
-            )
-            .map((key) => ({
-              [key]:
-                propertiesObj[key].type === 'integer'
-                  ? 1
-                  : propertiesObj[key].type === 'boolean'
-                  ? true
-                  : propertiesObj[key].enum
-                  ? propertiesObj[key].enum[0]
-                  : propertiesObj[key].format === 'date-time'
-                  ? '2022-01-20T12:01:30.543Z'
-                  : `random string ${index}`,
-            }))
-        )
+      const fakeData = Object.assign(
+        {},
+        ...propertiesArr
+          .filter(
+            (key) =>
+              key !== 'createdAt' &&
+              key !== 'updatedAt' &&
+              (propertiesObj[key].type === 'integer' ||
+                propertiesObj[key].type === 'string' ||
+                propertiesObj[key].type === 'boolean')
+          )
+          .map((key) => ({
+            [key]:
+              propertiesObj[key].type === 'integer'
+                ? 1
+                : propertiesObj[key].type === 'boolean'
+                ? true
+                : propertiesObj[key].enum
+                ? propertiesObj[key].enum[0]
+                : propertiesObj[key].format === 'date-time'
+                ? '2022-01-20T12:01:30.543Z'
+                : generatedUUID,
+          }))
+      )
 
-        fakeDatas.push(fake)
-      }
+      // sort results by foreign key
+      console.log(fakeData, 'fakeData')
 
-      const key = model[0].toLowerCase() + model.slice(1)
       results.push(
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        prisma[key].createMany({
-          data: fakeDatas,
+        prisma[model].create({
+          data: fakeData,
         })
       )
     }
