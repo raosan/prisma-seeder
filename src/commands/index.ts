@@ -6,6 +6,7 @@ import { PrismaClient } from '@prisma/client'
 import { v4 as uuidv4 } from 'uuid'
 
 const prisma = new PrismaClient()
+const results: any[] = []
 
 export default class PrismaSeeder extends Command {
   static description =
@@ -75,12 +76,9 @@ Finish seeding.
     const jsonFile = JSON.parse(text)
     const models = Object.keys(jsonFile.definitions)
 
-    // iterate models, for each models.properties, insert data
-    const results = []
+    // iterate models, for each models.properties, insert to results array
     const generatedUUID = uuidv4()
     for (const model of models) {
-      this.log('Seeding model ' + model + '...')
-      this.log('============================')
       const propertiesObj = jsonFile.definitions[model].properties
       const propertiesArr = Object.keys(propertiesObj)
 
@@ -109,22 +107,51 @@ Finish seeding.
           }))
       )
 
-      // sort results by foreign key
-      console.log(fakeData, 'fakeData')
-
-      results.push(
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        prisma[model].create({
-          data: fakeData,
-        })
-      )
+      results.push({
+        ...fakeData,
+        $model: model,
+      })
     }
 
-    await Promise.all(results)
+    // iterate insert data
+    let i = 0
+    while (results.findIndex((val) => val !== null) !== -1) {
+      const item = results[i]
+      if (item) {
+        // eslint-disable-next-line no-await-in-loop
+        await insertData(i, item.$model, item)
+      }
+
+      i += 1
+    }
 
     await prisma.$disconnect()
     this.log('============================')
     this.log('Finish seeding.')
+  }
+}
+
+async function insertData(index: number, model: string, data: any) {
+  const { $model, ...cleanData } = data
+
+  try {
+    console.log('Seeding model ' + $model + '...')
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    await prisma[model].create({ data: cleanData })
+    results[index] = null
+  } catch (error: any) {
+    if (error.code === 'P2003') {
+      console.log(
+        'Failed seeding model ' +
+          $model +
+          ' due to [FKey Constarint]. Will be retried'
+      )
+      results.push(data)
+      results[index] = null
+    } else {
+      console.log(error)
+    }
   }
 }
