@@ -3,8 +3,10 @@ import { execSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import { updateEnv } from '../scripts/env-edit'
 import { PrismaClient } from '@prisma/client'
+import { v4 as uuidv4 } from 'uuid'
 
 const prisma = new PrismaClient()
+const results: any[] = []
 
 export default class PrismaSeeder extends Command {
   static description =
@@ -74,53 +76,83 @@ Finish seeding.
     const jsonFile = JSON.parse(text)
     const models = Object.keys(jsonFile.definitions)
 
-    // iterate models, for each models.properties, insert data
-    const results = []
+    // iterate models, for each models.properties, insert to results array
+    const generatedUUID = uuidv4()
     for (const model of models) {
-      this.log('Seeding model ' + model + '...')
-      this.log('============================')
       const propertiesObj = jsonFile.definitions[model].properties
       const propertiesArr = Object.keys(propertiesObj)
 
-      const fakeDatas: any = []
-      for (let index = 0; index < 3; index++) {
-        const fake: any = Object.assign(
-          {},
-          ...propertiesArr
-            .filter(
-              (key) =>
-                key !== 'id' &&
-                (propertiesObj[key].type === 'integer' ||
-                  propertiesObj[key].type === 'string' ||
-                  propertiesObj[key].type === 'boolean')
-            )
-            .map((key) => ({
-              [key]:
-                propertiesObj[key].type === 'integer'
-                  ? 1
-                  : propertiesObj[key].type === 'boolean'
-                  ? true
-                  : 'random string',
-            }))
-        )
-
-        fakeDatas.push(fake)
-      }
-
-      const key = model.toLowerCase()
-      results.push(
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        prisma[key].createMany({
-          data: fakeDatas,
-        })
+      const fakeData = Object.assign(
+        {},
+        ...propertiesArr
+          .filter(
+            (key) =>
+              key !== 'createdAt' &&
+              key !== 'updatedAt' &&
+              (propertiesObj[key].type === 'integer' ||
+                propertiesObj[key].type === 'string' ||
+                propertiesObj[key].type === 'boolean')
+          )
+          .map((key) => ({
+            [key]:
+              propertiesObj[key].type === 'integer'
+                ? 1
+                : propertiesObj[key].type === 'boolean'
+                ? true
+                : propertiesObj[key].enum
+                ? propertiesObj[key].enum[0]
+                : propertiesObj[key].format === 'date-time'
+                ? '2022-01-20T12:01:30.543Z'
+                : generatedUUID,
+          }))
       )
+
+      results.push({
+        ...fakeData,
+        $model: model,
+      })
     }
 
-    await Promise.all(results)
+    // iterate insert data
+    let i = 0
+    while (results.findIndex((val) => val !== null) !== -1) {
+      const item = results[i]
+      if (item) {
+        // eslint-disable-next-line no-await-in-loop
+        await insertData(i, item)
+      }
+
+      i += 1
+    }
 
     await prisma.$disconnect()
     this.log('============================')
     this.log('Finish seeding.')
+  }
+}
+
+async function insertData(index: number, data: any) {
+  const { $model, ...cleanData } = data
+
+  try {
+    console.log('Seeding model ' + $model + '...')
+    const key = $model[0].toLowerCase() + $model.slice(1)
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    await prisma[key].create({ data: cleanData })
+    results[index] = null
+  } catch (error: any) {
+    if (error.code === 'P2003') {
+      console.log(
+        'Failed seeding model ' +
+          $model +
+          ' due to [FKey Constarint]. Will be retried'
+      )
+      results.push(data)
+      results[index] = null
+    } else {
+      console.log(error)
+    }
   }
 }
