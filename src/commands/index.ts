@@ -30,6 +30,10 @@ Finish seeding.
       description: 'url of the database',
       required: true,
     }),
+    execute: Flags.string({
+      char: 'e',
+      description: 'execute type. raw or not',
+    }),
   }
 
   async run(): Promise<void> {
@@ -45,31 +49,29 @@ Finish seeding.
     // update env DB
     this.log('Updating env...')
     this.log('============================')
-    execSync('cp ./.env.example ./.env', { encoding: 'utf-8' })
+    execSync('cp ./.env.example ./.env')
     updateEnv('./.env', 'DATABASE_URL', flags['database-url'])
 
     // copy prisma schema file
     this.log('Copying schema file...')
     this.log('============================')
-    execSync('rm -rf prisma', { encoding: 'utf-8' })
-    execSync('mkdir prisma', { encoding: 'utf-8' })
-    execSync(`cp ${flags.schema} ./prisma/schema.prisma`, { encoding: 'utf-8' })
+    execSync('rm -rf prisma')
+    execSync('mkdir prisma')
+    execSync(`cp ${flags.schema} ./prisma/schema.prisma`)
 
-    // generate json file
+    // generate json file and prisma client
     this.log('Generating prisma schema...')
     this.log('============================')
-    execSync(`npx prisma generate`, { encoding: 'utf-8' })
+    execSync(`npx prisma generate`)
 
     // migrate DB
     this.log('Resetting DB...')
     this.log('============================')
-    execSync('rm -rf migrations', { encoding: 'utf-8' })
-    execSync(`npx prisma migrate reset --force --skip-generate`, {
-      encoding: 'utf-8',
-    })
+    execSync('rm -rf migrations')
+    execSync(`npx prisma migrate reset --force --skip-generate`)
     this.log('Migrating DB...')
     this.log('============================')
-    execSync(`npx prisma migrate dev --name init`, { encoding: 'utf-8' })
+    execSync(`npx prisma migrate dev --name init`)
 
     // read from json file
     const text = fs.readFileSync('prisma/json-schema/json-schema.json', 'utf8')
@@ -119,7 +121,7 @@ Finish seeding.
       const item = results[i]
       if (item) {
         // eslint-disable-next-line no-await-in-loop
-        await insertData(i, item)
+        await insertData(i, item, flags)
       }
 
       i += 1
@@ -131,16 +133,52 @@ Finish seeding.
   }
 }
 
-async function insertData(index: number, data: any) {
+const isPascalCase = (word: string) => {
+  const pattern = /^[A-Z][A-Za-z]*$/
+  return pattern.test(word)
+}
+
+const camelToSnakeCase = (str: string) => {
+  const formattedStr = str.replace('ID', 'Id')
+  return formattedStr.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
+}
+
+async function insertData(index: number, data: any, flags: any) {
   const { $model, ...cleanData } = data
 
   try {
     console.log('Seeding model ' + $model + '...')
-    const key = $model[0].toLowerCase() + $model.slice(1)
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    await prisma[key].create({ data: cleanData })
+    if (flags.execute) {
+      // Execute raw sql
+      const model = isPascalCase($model) ? $model : camelToSnakeCase($model)
+      const keys = Object.keys(cleanData)
+      const keysColumns = keys
+        .map((item: string) =>
+          isPascalCase($model) ? `"${item}"` : `"${camelToSnakeCase(item)}"`
+        )
+        .join(', ')
+      const values = keys
+        .map((item: string) =>
+          cleanData[item]?.length > 10
+            ? `'${cleanData[item]}'`
+            : cleanData[item]
+        )
+        .join(', ')
+
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "${model}" (${keysColumns})
+        VALUES (${values});`
+      )
+    } else {
+      // Seed using prisma client
+      const key = $model[0].toLowerCase() + $model.slice(1)
+
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      await prisma[key].create({ data: cleanData })
+    }
+
     results[index] = null
   } catch (error: any) {
     if (error.code === 'P2003') {
@@ -150,9 +188,10 @@ async function insertData(index: number, data: any) {
           ' due to [FKey Constarint]. Will be retried'
       )
       results.push(data)
-      results[index] = null
     } else {
       console.log(error)
     }
+
+    results[index] = null
   }
 }
