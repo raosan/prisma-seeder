@@ -50,6 +50,16 @@ Finish seeding.
     execSync('mkdir prisma')
     execSync(`cp ${flags.schema} ./prisma/schema.prisma`)
 
+    // insert json schema generator config
+    this.log('Inserting json generator config...')
+    const generatorConfig = `\r\r
+generator jsonSchema {
+  provider = "prisma-json-schema-generator"
+  keepRelationScalarFields = "true"
+  includeRequiredFields = "true"
+}`
+    fs.appendFileSync('./prisma/schema.prisma', generatorConfig)
+
     // generate json file and prisma client
     this.log('Generating prisma schema...')
     execSync(`npx prisma generate`)
@@ -61,13 +71,13 @@ Finish seeding.
 
     // migrate DB
     this.log('Migrating DB...')
-    console.time('migration finish in:')
+    console.time('Migration finish in')
     // TODO: can't decide should we use db push or migrate dev.
     // --- execSync(`npx prisma migrate dev --name init`) ---
     // which one will have effect on later use?
     // for now, we use db push because it is faster by 1/3 time
     execSync(`npx prisma db push`)
-    console.timeEnd('migration finish in:')
+    console.timeEnd('Migration finish in')
 
     // get new generated prisma client
     this.log('Getting new Prisma Client...')

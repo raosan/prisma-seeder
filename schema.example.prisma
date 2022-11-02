@@ -1,9 +1,3 @@
-generator jsonSchema {
-  provider = "prisma-json-schema-generator"
-  keepRelationScalarFields = "true"
-  includeRequiredFields = "true"
-}
-
 generator client {
   provider = "prisma-client-js"
 }
