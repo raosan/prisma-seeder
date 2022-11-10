@@ -29,6 +29,10 @@ Finish seeding.
       description: 'url of the database',
       required: true,
     }),
+    reset: Flags.string({
+      char: 'r',
+      description: 'need reset db or not',
+    }),
   }
 
   async run(): Promise<void> {
@@ -64,20 +68,22 @@ generator jsonSchema {
     this.log('Generating prisma schema...')
     execSync(`npx prisma generate`)
 
-    // reset DB
-    this.log('Resetting DB...')
-    execSync('rm -rf migrations')
-    execSync(`npx prisma migrate reset --force --skip-generate`)
+    if (flags.reset === 'true') {
+      // reset DB
+      this.log('Resetting DB...')
+      execSync('rm -rf migrations')
+      execSync(`npx prisma migrate reset --force --skip-generate`)
 
-    // migrate DB
-    this.log('Migrating DB...')
-    console.time('Migration finish in')
-    // TODO: can't decide should we use db push or migrate dev.
-    // --- execSync(`npx prisma migrate dev --name init`) ---
-    // which one will have effect on later use?
-    // for now, we use db push because it is faster by 1/3 time
-    execSync(`npx prisma db push`)
-    console.timeEnd('Migration finish in')
+      // migrate DB
+      this.log('Migrating DB...')
+      console.time('Migration finish in')
+      // TODO: can't decide should we use db push or migrate dev.
+      // --- execSync(`npx prisma migrate dev --name init`) ---
+      // which one will have effect on later use?
+      // for now, we use db push because it is faster by 1/3 time
+      execSync(`npx prisma db push`)
+      console.timeEnd('Migration finish in')
+    }
 
     // get new generated prisma client
     this.log('Getting new Prisma Client...')
