@@ -50,9 +50,9 @@ Finish seeding.
 
     // copy prisma schema file
     this.log('Copying schema file...')
-    execSync('rm -rf prisma')
-    execSync('mkdir prisma')
-    execSync(`cp ${flags.schema} ./prisma/schema.prisma`)
+    execSync('rm -rf prisma-temp')
+    execSync('mkdir prisma-temp')
+    execSync(`cp ${flags.schema} ./prisma-temp/schema.prisma`)
 
     // insert json schema generator config
     this.log('Inserting json generator config...')
@@ -62,26 +62,28 @@ generator jsonSchema {
   keepRelationScalarFields = "true"
   includeRequiredFields = "true"
 }`
-    fs.appendFileSync('./prisma/schema.prisma', generatorConfig)
+    fs.appendFileSync('./prisma-temp/schema.prisma', generatorConfig)
+
+    const prismaTempLocation = '--schema=./prisma-temp/schema.prisma'
 
     // generate json file and prisma client
     this.log('Generating prisma schema...')
-    execSync(`npx prisma generate`)
+    execSync(`npx prisma generate ${prismaTempLocation}`)
 
     if (flags.reset === 'true') {
       // reset DB
       this.log('Resetting DB...')
       execSync('rm -rf migrations')
-      execSync(`npx prisma migrate reset --force --skip-generate`)
+      execSync(`npx prisma migrate reset --force --skip-generate ${prismaTempLocation}`)
 
       // migrate DB
       this.log('Migrating DB...')
       console.time('Migration finish in')
       // TODO: can't decide should we use db push or migrate dev.
-      // --- execSync(`npx prisma migrate dev --name init`) ---
+      // --- execSync(`npx prisma migrate dev --name init ${prismaTempLocation}`) ---
       // which one will have effect on later use?
       // for now, we use db push because it is faster by 1/3 time
-      execSync(`npx prisma db push`)
+      execSync(`npx prisma db push ${prismaTempLocation}`)
       console.timeEnd('Migration finish in')
     }
 
@@ -93,7 +95,7 @@ generator jsonSchema {
 
     // read from json file
     this.log('Reading json schema...')
-    const text = fs.readFileSync('prisma/json-schema/json-schema.json', 'utf8')
+    const text = fs.readFileSync('prisma-temp/json-schema/json-schema.json', 'utf8')
     const jsonFile = JSON.parse(text)
     const models = Object.keys(jsonFile.definitions)
 
