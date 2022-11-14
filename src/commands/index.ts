@@ -45,7 +45,6 @@ Finish seeding.
 
     // update env DB
     this.log('Updating env...')
-    execSync('cp ./.env.example ./.env')
     updateEnv('./.env', 'DATABASE_URL', flags['database-url'])
 
     // copy prisma schema file
@@ -79,10 +78,6 @@ generator jsonSchema {
       // migrate DB
       this.log('Migrating DB...')
       console.time('Migration finish in')
-      // TODO: can't decide should we use db push or migrate dev.
-      // --- execSync(`npx prisma migrate dev --name init ${prismaTempLocation}`) ---
-      // which one will have effect on later use?
-      // for now, we use db push because it is faster by 1/3 time
       execSync(`npx prisma db push ${prismaTempLocation}`)
       console.timeEnd('Migration finish in')
     }
