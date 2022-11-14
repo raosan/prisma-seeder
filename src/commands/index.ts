@@ -50,9 +50,9 @@ Finish seeding.
 
     // copy prisma schema file
     this.log('Copying schema file...')
-    execSync('rm -rf prisma-temp')
-    execSync('mkdir prisma-temp')
-    execSync(`cp ${flags.schema} ./prisma-temp/schema.prisma`)
+    execSync('rm -rf prisma-seeder-temp')
+    execSync('mkdir prisma-seeder-temp')
+    execSync(`cp ${flags.schema} ./prisma-seeder-temp/schema.prisma`)
 
     // insert json schema generator config
     this.log('Inserting json generator config...')
@@ -62,9 +62,9 @@ generator jsonSchema {
   keepRelationScalarFields = "true"
   includeRequiredFields = "true"
 }`
-    fs.appendFileSync('./prisma-temp/schema.prisma', generatorConfig)
+    fs.appendFileSync('./prisma-seeder-temp/schema.prisma', generatorConfig)
 
-    const prismaTempLocation = '--schema=./prisma-temp/schema.prisma'
+    const prismaTempLocation = '--schema=./prisma-seeder-temp/schema.prisma'
 
     // generate json file and prisma client
     this.log('Generating prisma schema...')
@@ -95,7 +95,7 @@ generator jsonSchema {
 
     // read from json file
     this.log('Reading json schema...')
-    const text = fs.readFileSync('prisma-temp/json-schema/json-schema.json', 'utf8')
+    const text = fs.readFileSync('prisma-seeder-temp/json-schema/json-schema.json', 'utf8')
     const jsonFile = JSON.parse(text)
     const models = Object.keys(jsonFile.definitions)
 
