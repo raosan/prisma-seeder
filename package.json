@@ -20,7 +20,7 @@
     "@oclif/core": "^1.20.2",
     "@oclif/plugin-help": "^5",
     "@oclif/plugin-plugins": "^2.1.6",
-    "@prisma/client": "4.5.0",
+    "@prisma/client": "4.8.0",
     "dotenv": "^16.0.3",
     "prisma": "4.5.0",
     "prisma-json-schema-generator": "^3.1.1",
